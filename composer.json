@@ -1,0 +1,10 @@
+{
+    "name": "nikolay/hexlet-slim-example",
+    "authors": [
+        {
+            "name": "Nikolay Kalashnikov",
+            "email": "kalash-job@yandex.ru"
+        }
+    ],
+    "require": {}
+}
