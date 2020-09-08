@@ -6,11 +6,6 @@
             "email": "kalash-job@yandex.ru"
         }
     ],
-    "autoload": {
-        "files": [
-            "public/index.php"
-        ]
-    },
     "require": {
         "slim/slim": "^4.5",
         "slim/psr7": "^1.2",
