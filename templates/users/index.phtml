@@ -6,7 +6,7 @@
 <table>
     <?php foreach ($users as $user): ?>
     <tr>
-        <td><?= htmlspecialchars($user) ?></td>
+        <td><?= htmlspecialchars($user['nickname']) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
