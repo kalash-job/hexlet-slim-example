@@ -14,14 +14,7 @@ $container->set('renderer', function () {
 });
 $app = AppFactory::createFromContainer($container);
 $app->addErrorMiddleware(true, true, true);
-
-/*$app->get('/users', function ($request, $response) {
-    return $response->write('GET /users');
-});*/
-
-/*$app->post('/users', function ($request, $response) {
-    return $response->withStatus(302);
-});*/
+$router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/users', function ($request, $response) {
     $term = $request->getQueryParam('term', '');
@@ -36,21 +29,22 @@ $app->get('/users', function ($request, $response) {
         $params = ['users' => $users, 'term' => ''];
     }
     return $this->get('renderer')->render($response, 'users/index.phtml', $params);
-});
+})->setName('users');
 
-$app->get('/users/new', function ($request, $response) use (&$lastId) {
+$app->get('/users/new', function ($request, $response) use (&$lastId, $router) {
     $lastId = json_decode(file_get_contents(__DIR__ . '/../data/id.json'), TRUE);
     $lastId ++;
     $id = $lastId;
     file_put_contents(__DIR__ . '/../data/id.json', json_encode($id));
     $params = [
         'user' => ['nickname' => '', 'email' => '', 'id' => $id],
-        'errors' => []
+        'errors' => [],
+        'route' => $router->urlFor('users')
     ];
     return $this->get('renderer')->render($response, "users/new.phtml", $params);
-});
+})->setName('new-user-form');
 
-$app->post('/users', function ($request, $response) {
+$app->post('/users', function ($request, $response) use ($router) {
     $user = $request->getParsedBodyParam('user');
     $validator = new Validator();
     $errors = $validator->validate($user);
@@ -58,18 +52,21 @@ $app->post('/users', function ($request, $response) {
         $users = json_decode(file_get_contents(__DIR__ . '/../data/users.json'), TRUE);
         $users[] = $user;
         file_put_contents(__DIR__ . '/../data/users.json', json_encode($users));
-        return $response->withRedirect('/users', 302);
+        $route = $router->urlFor('users');
+        return $response->withRedirect($route, 302);
     }
     $params = [
         'user' => $user,
         'errors' => $errors
     ];
     return $this->get('renderer')->render($response, "users/new.phtml", $params);
-});
+})->setName('save-user');
 
 $app->get('/users/{id}', function ($request, $response, $args) {
     $params = ['id' => $args['id'], 'nickname' => 'user-' . $args['id']];
     return $this->get('renderer')->render($response, 'users/show.phtml', $params);
-});
+})->setName('user');
+
+
 
 $app->run();
