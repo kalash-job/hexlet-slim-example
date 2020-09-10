@@ -6,7 +6,7 @@
 <table>
     <?php foreach ($users as $user): ?>
     <tr>
-        <td><?= htmlspecialchars($user['nickname']) ?></td>
+        <td><a href="<?= $routes[$user['id']] ?>"><?= htmlspecialchars($user['nickname']) ?></a></td>
     </tr>
     <?php endforeach; ?>
 </table>
