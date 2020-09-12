@@ -66,11 +66,17 @@ $app->post('/users', function ($request, $response) use ($router) {
     return $this->get('renderer')->render($response, "users/new.phtml", $params);
 })->setName('users.store');
 
-$app->get('/users/{id}', function ($request, $response, $args) {
-    $params = ['id' => $args['id'], 'nickname' => 'user-' . $args['id']];
+$app->get('/users/{id}', function ($request, $response, $args) use ($router) {
+    $users = json_decode(file_get_contents(__DIR__ . '/../data/users.json'), TRUE);
+    $filteredUsers = array_filter($users, fn($user) => $user['id'] === $args['id']);
+    if (empty($filteredUsers)) {
+        $route = $router->urlFor('users.index');
+        $params = ['route' => $route];
+        return $this->get('renderer')->render($response->withStatus(404), "404.phtml", $params);
+    }
+    [$user] = $filteredUsers;
+    $params = ['nickname' => $user['nickname']];
     return $this->get('renderer')->render($response, 'users/show.phtml', $params);
 })->setName('user.show');
-
-
 
 $app->run();
