@@ -7,12 +7,19 @@ use Slim\Factory\AppFactory;
 use DI\Container;
 use App\Validator;
 
+session_start();
+
 $container = new Container();
+$container->set('flash', function () {
+    return new \Slim\Flash\Messages();
+});
 $container->set('renderer', function () {
     // Параметром передается базовая директория в которой будут храниться шаблоны
     return new \Slim\Views\PhpRenderer(__DIR__ . '/../templates');
 });
-$app = AppFactory::createFromContainer($container);
+/*$app = AppFactory::createFromContainer($container);*/
+AppFactory::setContainer($container);
+$app = AppFactory::create();
 $app->addErrorMiddleware(true, true, true);
 $router = $app->getRouteCollector()->getRouteParser();
 
@@ -30,7 +37,8 @@ $app->get('/users', function ($request, $response) use ($router) {
         $usersForPage = array_values($filteredUsers);
         $params = ['users' => $usersForPage, 'term' => $term, 'routes' => $routes];
     } else {
-        $params = ['users' => $users, 'term' => '', 'routes' => $routes];
+        $flash = $this->get('flash')->getMessages();
+        $params = ['users' => $users, 'term' => '', 'routes' => $routes, 'flash' => $flash];
     }
     return $this->get('renderer')->render($response, 'users/index.phtml', $params);
 })->setName('users.index');
@@ -57,6 +65,7 @@ $app->post('/users', function ($request, $response) use ($router) {
         $users[] = $user;
         file_put_contents(__DIR__ . '/../data/users.json', json_encode($users));
         $route = $router->urlFor('users.index');
+        $this->get('flash')->addMessage('success', 'New User was added');
         return $response->withRedirect($route, 302);
     }
     $params = [
@@ -74,7 +83,7 @@ $app->get('/users/{id}', function ($request, $response, $args) use ($router) {
         $params = ['route' => $route];
         return $this->get('renderer')->render($response->withStatus(404), "404.phtml", $params);
     }
-    [$user] = $filteredUsers;
+    [$user] = array_values($filteredUsers);
     $params = ['nickname' => $user['nickname']];
     return $this->get('renderer')->render($response, 'users/show.phtml', $params);
 })->setName('user.show');
