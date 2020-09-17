@@ -51,7 +51,7 @@ $app->get('/users/new', function ($request, $response) use ($router) {
     $params = [
         'user' => ['nickname' => '', 'email' => '', 'id' => $id],
         'errors' => [],
-        'route' => $router->urlFor('users.index')
+        'route' => $router->urlFor('users.store')
     ];
     return $this->get('renderer')->render($response, "users/new.phtml", $params);
 })->setName('users.create');
@@ -70,7 +70,8 @@ $app->post('/users', function ($request, $response) use ($router) {
     }
     $params = [
         'user' => $user,
-        'errors' => $errors
+        'errors' => $errors,
+        'route' => $router->urlFor('users.store')
     ];
     return $this->get('renderer')->render($response, "users/new.phtml", $params);
 })->setName('users.store');
