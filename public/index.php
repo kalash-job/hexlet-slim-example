@@ -6,6 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use Slim\Factory\AppFactory;
 use DI\Container;
 use App\Validator;
+use Slim\Middleware\MethodOverrideMiddleware;
 
 session_start();
 
@@ -20,6 +21,7 @@ $container->set('renderer', function () {
 /*$app = AppFactory::createFromContainer($container);*/
 AppFactory::setContainer($container);
 $app = AppFactory::create();
+$app->add(MethodOverrideMiddleware::class);
 $app->addErrorMiddleware(true, true, true);
 $router = $app->getRouteCollector()->getRouteParser();
 
@@ -77,16 +79,63 @@ $app->post('/users', function ($request, $response) use ($router) {
 })->setName('users.store');
 
 $app->get('/users/{id}', function ($request, $response, $args) use ($router) {
+    $id = $args['id'];
     $users = json_decode(file_get_contents(__DIR__ . '/../data/users.json'), TRUE);
-    $filteredUsers = array_filter($users, fn($user) => $user['id'] === $args['id']);
+    $filteredUsers = array_filter($users, fn($user) => $user['id'] === $id);
     if (empty($filteredUsers)) {
         $route = $router->urlFor('users.index');
         $params = ['route' => $route];
         return $this->get('renderer')->render($response->withStatus(404), "404.phtml", $params);
     }
     [$user] = array_values($filteredUsers);
-    $params = ['nickname' => $user['nickname']];
+    $route = $router->urlFor('users.edit', ['id' => $user['id']]);
+    $flash = $this->get('flash')->getMessages();
+    $params = ['user' => $user, 'route' => $route, 'flash' => $flash];
     return $this->get('renderer')->render($response, 'users/show.phtml', $params);
 })->setName('user.show');
+
+$app->get('/users/{id}/edit', function ($request, $response, array $args) use ($router) {
+    $id = $args['id'];
+    $users = json_decode(file_get_contents(__DIR__ . '/../data/users.json'), TRUE);
+    $filteredUsers = array_filter($users, fn($user) => $user['id'] === $id);
+    [$user] = array_values($filteredUsers);
+    $params = [
+        'user' => $user,
+        'errors' => [],
+        'route' => $router->urlFor('users.update', ['id' => $user['id']])
+    ];
+    return $this->get('renderer')->render($response, "users/edit.phtml", $params);
+})->setName('users.edit');
+
+$app->patch('/users/{id}/', function ($request, $response, array $args) use ($router) {
+    $id = $args['id'];
+    $data = $request->getParsedBodyParam('user');
+    $validator = new Validator();
+    $errors = $validator->validate($data);
+    if (count($errors) === 0) {
+        $users = json_decode(file_get_contents(__DIR__ . '/../data/users.json'), TRUE);
+        $filteredUsers = array_filter($users, fn($user) => $user['id'] === $id);
+        [$updatedUser] = array_values($filteredUsers);
+        $updatedUser['nickname'] = $data['nickname'];
+        $updatedUser['email'] = $data['email'];
+        $updatedUsers = array_map(function ($user) use ($updatedUser, $id) {
+            if ($user['id'] === $id) {
+                return $updatedUser;
+            }
+            return $user;
+        }, $users);
+        file_put_contents(__DIR__ . '/../data/users.json', json_encode($updatedUsers));
+        $this->get('flash')->addMessage('success', 'User has been updated');
+        $route = $router->urlFor('user.show', ['id' => $updatedUser['id']]);
+        return $response->withRedirect($route, 302);
+    }
+    $params = [
+        'user' => $data,
+        'errors' => $errors,
+        'route' => $router->urlFor('users.update', ['id' => $data['id']])
+    ];
+    $response = $response->withStatus(422);
+    return $this->get('renderer')->render($response, "users/edit.phtml", $params);
+})->setName('users.update');
 
 $app->run();
