@@ -88,9 +88,14 @@ $app->get('/users/{id}', function ($request, $response, $args) use ($router) {
         return $this->get('renderer')->render($response->withStatus(404), "404.phtml", $params);
     }
     [$user] = array_values($filteredUsers);
-    $route = $router->urlFor('users.edit', ['id' => $user['id']]);
+    $urlToEdit = $router->urlFor('users.edit', ['id' => $user['id']]);
+    $urlToDelete = $router->urlFor('users.destroy', ['id' => $user['id']]);
     $flash = $this->get('flash')->getMessages();
-    $params = ['user' => $user, 'route' => $route, 'flash' => $flash];
+    $params = [
+        'user' => $user,
+        'url' => ['edit' => $urlToEdit, 'delete' => $urlToDelete],
+        'flash' => $flash
+    ];
     return $this->get('renderer')->render($response, 'users/show.phtml', $params);
 })->setName('user.show');
 
@@ -107,7 +112,7 @@ $app->get('/users/{id}/edit', function ($request, $response, array $args) use ($
     return $this->get('renderer')->render($response, "users/edit.phtml", $params);
 })->setName('users.edit');
 
-$app->patch('/users/{id}/', function ($request, $response, array $args) use ($router) {
+$app->patch('/users/{id}', function ($request, $response, array $args) use ($router) {
     $id = $args['id'];
     $data = $request->getParsedBodyParam('user');
     $validator = new Validator();
@@ -137,5 +142,15 @@ $app->patch('/users/{id}/', function ($request, $response, array $args) use ($ro
     $response = $response->withStatus(422);
     return $this->get('renderer')->render($response, "users/edit.phtml", $params);
 })->setName('users.update');
+
+$app->delete('/users/{id}', function ($request, $response, array $args) use ($router) {
+    $id = $args['id'];
+    $users = json_decode(file_get_contents(__DIR__ . '/../data/users.json'), TRUE);
+    $filteredUsers = array_filter($users, fn($user) => $user['id'] !== $id);
+    file_put_contents(__DIR__ . '/../data/users.json', json_encode(array_values($filteredUsers)));
+    $this->get('flash')->addMessage('success', 'User has been deleted');
+    $route = $router->urlFor('users.index');
+    return $response->withRedirect($route);
+})->setName('users.destroy');
 
 $app->run();

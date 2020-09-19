@@ -8,4 +8,10 @@
     </ul>
 <?php endif ?>
 <h1>Hello, <?= htmlspecialchars($user['nickname']) ?>!</h1>
-<a href="<?= $route ?>">Edit user</a>
+<a href="<?= $url['edit'] ?>">Edit user</a>
+<p>
+<form action="<?= $url['delete'] ?>" method="post">
+    <input type="hidden" name="_METHOD" value="DELETE">
+    <input type="submit" value="Remove">
+</form>
+</p>
