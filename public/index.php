@@ -68,7 +68,7 @@ $app->post('/users', function ($request, $response) use ($router) {
         $encodedUsers = json_encode($users);
         $route = $router->urlFor('users.index');
         $this->get('flash')->addMessage('success', 'New User was added');
-        return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers}",  "Path=/", "domain=localhost")->withRedirect($route, 302);
+        return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers};Path=/")->withRedirect($route, 302);
     }
     $params = [
         'user' => $user,
@@ -128,7 +128,7 @@ $app->patch('/users/{id}', function ($request, $response, array $args) use ($rou
         $encodedUsers = json_encode($updatedUsers);
         $this->get('flash')->addMessage('success', 'User has been updated');
         $route = $router->urlFor('user.show', ['id' => $id]);
-        return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers}",  "Path=/", "domain=localhost")->withRedirect($route, 302);
+        return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers};Path=/")->withRedirect($route, 302);
     }
     $params = [
         'user' => $data,
@@ -144,10 +144,9 @@ $app->delete('/users/{id}', function ($request, $response, array $args) use ($ro
     $users = json_decode($request->getCookieParam('allUsers', json_encode([])), true);
     $filteredUsers = array_filter($users, fn($user) => $user['id'] !== $id);
     $encodedUsers = json_encode(array_values($filteredUsers));
-    $this->get('flash')->addMessage('success', $encodedUsers);
     $this->get('flash')->addMessage('success', 'User has been deleted');
     $route = $router->urlFor('users.index');
-    return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers}",  "Path=/", "domain=localhost")->withRedirect($route);
+    return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers};Path=/")->withRedirect($route);
 })->setName('users.destroy');
 
 $app->run();
