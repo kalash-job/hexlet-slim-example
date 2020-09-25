@@ -149,4 +149,43 @@ $app->delete('/users/{id}', function ($request, $response, array $args) use ($ro
     return $response->withHeader('Set-Cookie', "allUsers={$encodedUsers};Path=/")->withRedirect($route);
 })->setName('users.destroy');
 
+$app->post('/session', function ($request, $response) use ($router) {
+    $user = $request->getParsedBodyParam('user');
+    $email = $user['email'];
+    $url = $router->urlFor('/');
+    $users = json_decode($request->getCookieParam('allUsers', json_encode([])), true);
+    $filteredUsers = array_filter($users, fn($item) => $item['email'] === $email);
+    if (!empty($filteredUsers)) {
+        $_SESSION['user'] = $user['name'];
+        return $response->withRedirect($url, 302);
+    }
+    $this->get('flash')->addMessage('error', 'Wrong email');
+    return $response->withRedirect($url, 302);
+})->setName('session.create');
+
+$app->delete('/session', function ($request, $response, array $args) use ($router) {
+    $_SESSION = [];
+    session_destroy();
+    $route = $router->urlFor('/');
+    return $response->withRedirect($route);
+})->setName('session.destroy');
+
+$app->get('/', function ($request, $response) use ($router) {
+    $flash = $this->get('flash')->getMessages();
+    if (isset($_SESSION['user'])) {
+        $params = [
+            'user' => $_SESSION['user'] ?? null,
+            'url' => $router->urlFor('session.destroy'),
+            'flash' => $flash,
+        ];
+    } else {
+        $params = [
+            'user' => $_SESSION['user'] ?? null,
+            'url' => $router->urlFor('session.create'),
+            'flash' => $flash,
+        ];
+    }
+    return $this->get('renderer')->render($response, 'users/login.phtml', $params);
+})->setName('/');
+
 $app->run();
