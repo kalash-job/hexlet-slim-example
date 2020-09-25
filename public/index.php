@@ -46,10 +46,11 @@ $app->get('/users', function ($request, $response) use ($router) {
 })->setName('users.index');
 
 $app->get('/users/new', function ($request, $response) use ($router) {
-    $lastId = json_decode(file_get_contents(__DIR__ . '/../data/id.json'), true);
-    $lastId ++;
-    $id = $lastId;
-    file_put_contents(__DIR__ . '/../data/id.json', json_encode($id));
+    $users = json_decode($request->getCookieParam('allUsers', json_encode([])), true);
+    $lastId = array_reduce($users, function ($acc, $user) {
+        return $acc < $user['id'] ? $user['id'] : $acc;
+    }, $users[0]['id']);
+    $id = $lastId + 1;
     $params = [
         'user' => ['nickname' => '', 'email' => '', 'id' => $id],
         'errors' => [],
