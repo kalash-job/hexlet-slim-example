@@ -26,6 +26,7 @@ $router = $app->getRouteCollector()->getRouteParser();
 
 $app->get('/users', function ($request, $response) use ($router) {
     $term = $request->getQueryParam('term', '');
+    $urlAddNewUser = $router->urlFor('users.create');
     $users = json_decode($request->getCookieParam('allUsers', json_encode([])), true);
     $routes = [];
     foreach ($users as $user) {
@@ -37,10 +38,10 @@ $app->get('/users', function ($request, $response) use ($router) {
             return strpos($user['nickname'], $term) !== false;
         });
         $usersForPage = array_values($filteredUsers);
-        $params = ['users' => $usersForPage, 'term' => $term, 'routes' => $routes];
+        $params = ['users' => $usersForPage, 'term' => $term, 'routes' => $routes, 'urlAddNewUser' => $urlAddNewUser];
     } else {
         $flash = $this->get('flash')->getMessages();
-        $params = ['users' => $users, 'term' => '', 'routes' => $routes, 'flash' => $flash];
+        $params = ['users' => $users, 'term' => '', 'routes' => $routes, 'flash' => $flash, 'urlAddNewUser' => $urlAddNewUser];
     }
     return $this->get('renderer')->render($response, 'users/index.phtml', $params);
 })->setName('users.index');
@@ -91,10 +92,11 @@ $app->get('/users/{id}', function ($request, $response, $args) use ($router) {
     [$user] = array_values($filteredUsers);
     $urlToEdit = $router->urlFor('users.edit', ['id' => $user['id']]);
     $urlToDelete = $router->urlFor('users.destroy', ['id' => $user['id']]);
+    $urlAllUsers = $router->urlFor('users.index');
     $flash = $this->get('flash')->getMessages();
     $params = [
         'user' => $user,
-        'url' => ['edit' => $urlToEdit, 'delete' => $urlToDelete],
+        'url' => ['edit' => $urlToEdit, 'delete' => $urlToDelete, 'all' => $urlAllUsers],
         'flash' => $flash
     ];
     return $this->get('renderer')->render($response, 'users/show.phtml', $params);
